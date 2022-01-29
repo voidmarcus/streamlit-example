@@ -1,38 +1,40 @@
-from collections import namedtuple
-import altair as alt
-import math
+import json
+import datetime
+import requests
 import pandas as pd
 import streamlit as st
 
-"""
-# Welcome to Streamlit!
+st.write("""
+# WhenHarvest AI System
+Simulation results are shown for a better harvest!
+""")
 
-Edit `/streamlit_app.py` to customize this app to your heart's desire :heart:
+with st.form(key='my_form'):
+    
+    with st.sidebar:
+        lat = st.text_input('Latitude (°):')
+        lng = st.text_input('Longitude (°):')
+        whc = st.selectbox(
+             'Water holding capacity (mm):',
+             ("Coarse sand - 42", "Loamy sandy - 83", "Silt loam - 146", "Heavy clay - 167"))
 
-If you have any questions, checkout our [documentation](https://docs.streamlit.io) and [community
-forums](https://discuss.streamlit.io).
+        sowing = st.date_input('Sowing date:', datetime.date.today())
 
-In the meantime, below is an example of what you can do with just a few lines of code:
-"""
+        submit = st.form_submit_button('Run simulation')
 
+        if submit:
+            """
+            Selected location:
+            """
+            df = pd.DataFrame({'lat': [float(lat)], 'lon': [float(lng)]})           
+            st.map(df, zoom=8, use_container_width=False)
 
-with st.echo(code_location='below'):
-    total_points = st.slider("Number of points in spiral", 1, 5000, 2000)
-    num_turns = st.slider("Number of turns in spiral", 1, 100, 9)
+            dictionary = {'lat':float(lat), 'lng':float(lng), 'sowing':sowing.isoformat(), 'whc':whc}
+            input = json.dumps(dictionary, indent = 4)
 
-    Point = namedtuple('Point', 'x y')
-    data = []
-
-    points_per_turn = total_points / num_turns
-
-    for curr_point_num in range(total_points):
-        curr_turn, i = divmod(curr_point_num, points_per_turn)
-        angle = (curr_turn + 1) * 2 * math.pi * i / points_per_turn
-        radius = curr_point_num / total_points
-        x = radius * math.cos(angle)
-        y = radius * math.sin(angle)
-        data.append(Point(x, y))
-
-    st.altair_chart(alt.Chart(pd.DataFrame(data), height=500, width=500)
-        .mark_circle(color='#0068c9', opacity=0.5)
-        .encode(x='x:Q', y='y:Q'))
+            base_url = 'https://us-central1-hopeful-grid-336019.cloudfunctions.net/whenharvest-4g?' ## Aqui eu tentei com e sem o ? no final
+            response_met_data = requests.get(base_url, input, # <Response [500]>
+            #response_met_data = requests.get(base_url, data = input, # <Response [400]>
+            verify=True, timeout=400.00)
+            content = response_met_data
+content # esse objeto esta para ser exibido no container principal da pagina (por isso a msg de erro no inicio de rodar a pagina)
